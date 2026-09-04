@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shop — Velora</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <ul class="nav-left">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="index.html#about">About Us</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <div class="logo-small">VELORA</div>
+    <ul class="nav-right">
+      <li><button class="icon-btn" title="Search">🔍</button></li>
+      <li><button class="icon-btn" title="Account">👤</button></li>
+      <li><a href="cart.html" class="icon-btn">🛍 <span id="cart-count">0</span></a></li>
+    </ul>
+  </header>
+
+  <div class="shop-header">
+    <h1 class="serif">All Tees</h1>
+    <p>Real recognize real. Made for the ones who get the reference. Wear what they won't understand. That's the whole point.</p>
+  </div>
+
+  <div class="shop-controls">
+    <select id="sort-select">
+      <option value="default">Sort: Featured</option>
+      <option value="price-asc">Price: Low to High</option>
+      <option value="price-desc">Price: High to Low</option>
+      <option value="name-asc">Name: A-Z</option>
+    </select>
+    <select id="filter-select">
+      <option value="all">Filter: All Categories</option>
+    </select>
+  </div>
+
+  <div class="product-grid" id="product-grid"></div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom" style="border-top:none;padding-top:0;">
+      <span>© <span id="year"></span> Velora by Datstorr. All rights reserved.</span>
+      <div class="links">
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="terms-of-service.html">Terms &amp; Conditions</a>
+        <a href="refund-policy.html">Refund Policy</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="products.js"></script>
+  <script src="cart.js"></script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Populate filter dropdown from actual categories
+    const categories = [...new Set(PRODUCTS.map((p) => p.category))];
+    const filterSelect = document.getElementById("filter-select");
+    categories.forEach((cat) => {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.textContent = cat;
+      filterSelect.appendChild(opt);
+    });
+
+    function renderGrid() {
+      const sortVal = document.getElementById("sort-select").value;
+      const filterVal = document.getElementById("filter-select").value;
+
+      let list = [...PRODUCTS];
+      if (filterVal !== "all") {
+        list = list.filter((p) => p.category === filterVal);
+      }
+      if (sortVal === "price-asc") list.sort((a, b) => a.price - b.price);
+      if (sortVal === "price-desc") list.sort((a, b) => b.price - a.price);
+      if (sortVal === "name-asc") list.sort((a, b) => a.name.localeCompare(b.name));
+
+      const grid = document.getElementById("product-grid");
+      grid.innerHTML = "";
+      list.forEach((p) => {
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.onclick = () => { window.location.href = "product.html?id=" + p.id; };
+        card.innerHTML = `
+          <div class="placeholder-media">
+  ${p.images
+    ? `<div class="product-slideshow">
+        ${p.images.map(img => `<img src="${img}" alt="${p.name}">`).join("")}
+      </div>`
+    : p.image
+      ? `<img src="${p.image}" alt="${p.name}">`
+      : "Image coming soon"
+  }
+</div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-price">$${p.price.toFixed(2)}</div>
+          <div class="p-tag">${p.category}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    document.getElementById("sort-select").addEventListener("change", renderGrid);
+    document.getElementById("filter-select").addEventListener("change", renderGrid);
+    renderGrid();
+  </script>
+</body>
+</html>

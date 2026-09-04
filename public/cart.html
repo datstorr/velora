@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Your Cart — Velora</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="logo-small"><a href="index.html">VELORA</a></div>
+    <ul class="nav-right">
+      <li><a href="shop.html" class="icon-btn">Continue Shopping</a></li>
+    </ul>
+  </header>
+
+  <div class="container">
+    <h1 class="serif" style="color:#8b1220;margin-bottom:20px;">Your Cart</h1>
+    <div id="cart-items"></div>
+    <div class="cart-total">
+      <span>Total</span>
+      <span id="cart-total-amount">$0.00</span>
+    </div>
+
+    <div style="margin-top:20px;">
+      <input type="text" id="customer-name" class="field" placeholder="Full name">
+      <input type="email" id="customer-email" class="field" placeholder="Email">
+      <input type="tel" id="customer-phone" class="field" placeholder="Phone number">
+      <textarea id="customer-address" class="field" placeholder="Shipping address" style="min-height:80px;"></textarea>
+      <button class="btn" id="checkout-btn">Pay Now</button>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom" style="border-top:none;padding-top:0;">
+      <span>© <span id="year"></span> Velora by Datstorr. All rights reserved.</span>
+    </div>
+  </footer>
+
+  <script src="products.js"></script>
+  <script src="cart.js"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    function renderCartPage() {
+      const cart = getCart();
+      const container = document.getElementById("cart-items");
+      container.innerHTML = "";
+      if (cart.length === 0) {
+        container.innerHTML = "<p style='color:#8a7f74;'>Your cart is empty.</p>";
+      }
+      cart.forEach((item) => {
+        const product = getProductById(item.id);
+        if (!product) return;
+        const row = document.createElement("div");
+        row.className = "cart-row";
+        row.innerHTML = `
+          <div class="placeholder-thumb">${product.image ? `<img src="${product.image}" style="width:100%;height:100%;object-fit:cover;">` : "No image"}</div>
+          <div class="info">
+            <div>${product.name} — Size ${item.size}</div>
+            <div style="color:#8a7f74;font-size:13px;">$${product.price.toFixed(2)}</div>
+          </div>
+          <input type="number" min="1" value="${item.qty}" onchange="updateQty('${item.id}', '${item.size}', parseInt(this.value))">
+          <span class="remove-link" onclick="removeFromCart('${item.id}', '${item.size}')">Remove</span>
+        `;
+        container.appendChild(row);
+      });
+      document.getElementById("cart-total-amount").textContent = "$" + cartTotal().toFixed(2);
+    }
+
+    renderCartPage();
+
+    document.getElementById("checkout-btn").addEventListener("click", async () => {
+      const cart = getCart();
+      if (cart.length === 0) { alert("Your cart is empty."); return; }
+
+      const name = document.getElementById("customer-name").value.trim();
+      const email = document.getElementById("customer-email").value.trim();
+      const phone = document.getElementById("customer-phone").value.trim();
+      const address = document.getElementById("customer-address").value.trim();
+
+      if (!name || !email || !phone || !address) {
+        alert("Please fill in all your details before checking out.");
+        return;
+      }
+
+      const btn = document.getElementById("checkout-btn");
+      btn.disabled = true;
+      btn.textContent = "Processing...";
+
+      try {
+        const orderRes = await fetch("/api/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: cartTotal() })
+        });
+        const order = await orderRes.json();
+
+        const options = {
+          key: order.key_id,
+          amount: order.amount,
+          currency: order.currency,
+          name: "Velora",
+          description: "Order Payment",
+          order_id: order.id,
+          handler: async function (response) {
+            const verifyRes = await fetch("/api/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...response,
+                customer: { name, email, phone, address },
+                cart
+              })
+            });
+            const result = await verifyRes.json();
+            if (result.success) {
+              localStorage.removeItem("velora_cart");
+              window.location.href = "success.html";
+            } else {
+              alert("Payment verification failed. Please contact us.");
+            }
+          },
+          prefill: { name, email, contact: phone },
+          theme: { color: "#8b1220" }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } catch (err) {
+        alert("Something went wrong. Please try again.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Pay Now";
+      }
+    });
+  </script>
+</body>
+</html>
