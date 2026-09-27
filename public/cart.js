@@ -8,6 +8,33 @@ function saveCart(cart) {
   updateCartCount();
 }
 
+function showToast(message) {
+  let toast = document.getElementById("velora-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "velora-toast";
+    toast.style.cssText = `
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #8b1220; color: #fff; padding: 14px 28px; font-size: 13px;
+      letter-spacing: .06em; text-transform: uppercase; font-weight: 600;
+      border-radius: 2px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      z-index: 9999; opacity: 0; transition: opacity .25s ease, transform .25s ease;
+      pointer-events: none;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  requestAnimationFrame(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateX(-50%) translateY(0)";
+  });
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(-50%) translateY(20px)";
+  }, 1800);
+}
+
 function addToCart(productId, size, qty) {
   qty = qty || 1;
   const cart = getCart();
@@ -18,7 +45,7 @@ function addToCart(productId, size, qty) {
     cart.push({ id: productId, size: size, qty: qty });
   }
   saveCart(cart);
-  alert("Added to cart!");
+  showToast("Added to cart");
 }
 
 function removeFromCart(productId, size) {
